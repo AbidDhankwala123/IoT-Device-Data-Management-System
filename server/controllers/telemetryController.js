@@ -4,6 +4,7 @@ const Device = require("../models/Device");
 
 /*
 Telemetry insert data
+{
     "deviceId":"dev-104",
     "timestamp":"2026-04-01T10:30:00Z",
     "metrics":{
@@ -11,6 +12,7 @@ Telemetry insert data
     "humidity": 40,
     "battery": 15
     }
+}
 */
 const insertTelemetry = async (req, res, next) => {
     try {

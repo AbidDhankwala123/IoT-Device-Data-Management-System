@@ -3,6 +3,7 @@ const AppError = require("../utils/AppError");
 
 /*
 Device register data
+{
     "deviceId":"dev-104",
     "type":"humidity",
     "location":{
@@ -10,6 +11,7 @@ Device register data
          "long": 66.5201
     }
     "status":"inactive"
+}
 */
 const registerDevice = async (req, res, next) => {
     try {
