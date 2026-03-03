@@ -110,6 +110,148 @@ const bulkInsertTelemetry = async (req, res, next) => {
     }
 }
 
+const getTelemetryByRange = async (req, res, next) => {
+    try {
+        const { deviceId } = req.params;
+        const { start, end } = req.query;
 
+        const device = await Device.findOne({ deviceId });
 
-module.exports = { insertTelemetry, bulkInsertTelemetry }
+        if (!device) {
+            return next(new AppError("Device not found", 400));
+        }
+
+        if (!start || !end) {
+            return next(new AppError("Start and End date are required", 400));
+        }
+
+        const startDate = new Date(start);
+        const endDate = new Date(end);
+
+        if (isNaN(startDate) || isNaN(endDate)) {
+            return next(new AppError("Start and end Dates must be valid dates", 400))
+        }
+
+        if (startDate > endDate) {
+            return next(new AppError("Start date cannot be after End date", 400))
+        }
+
+        const telemetry = await Telemetry.find({ deviceId, timestamp: { $gte: startDate, $lte: endDate } });
+
+        res.status(200).json({
+            status: "SUCCESS",
+            telemetry
+        })
+    } catch (error) {
+        next(error);
+    }
+}
+
+const getLatestTelemetry = async (req, res, next) => {
+    try {
+        const telemetry = await Telemetry.aggregate([
+            { $sort: { timestamp: -1 } },
+            { $group: { _id: "$deviceId", latestTelemetry: { $first: "$$ROOT" } } }
+        ]);
+
+        res.status(200).json({
+            status: "SUCCESS",
+            telemetry
+        })
+    } catch (error) {
+        next(error);
+    }
+}
+
+const getStats = async (req, res, next) => {
+    try {
+        const { deviceId } = req.params;
+        const { start, end, metric } = req.query;
+
+        const device = await Device.findOne({ deviceId });
+
+        if (!device) {
+            return next(new AppError("Device not found", 400));
+        }
+
+        if (!start || !end) {
+            return next(new AppError("Start and End date are required", 400));
+        }
+
+        const startDate = new Date(start);
+        const endDate = new Date(end);
+
+        if (isNaN(startDate) || isNaN(endDate)) {
+            return next(new AppError("Start and end Dates must be valid dates", 400))
+        }
+
+        if (startDate > endDate) {
+            return next(new AppError("Start date cannot be after End date", 400))
+        }
+
+        if (!metric || !["temperature", "humidity", "battery"].includes(metric)) {
+            return next(new AppError("Metric must be temperature, humidity, or battery", 400));
+        }
+
+        const telemetryStats = await Telemetry.aggregate([
+            { $match: { deviceId, timestamp: { $gte: startDate, $lte: endDate } } },
+            {
+                $group: {
+                    _id: null,
+                    avg: { $avg: `$metrics.${metric}` },
+                    min: { $min: `$metrics.${metric}` },
+                    max: { $max: `$metrics.${metric}` }
+                }
+            }
+        ])
+
+        res.status(200).json({
+            status: "SUCCESS",
+            telemetryStats
+        })
+    } catch (error) {
+        next(error);
+    }
+}
+
+const lowBattery = async (req, res, next) => {
+    try {
+        const threshold = Number(req.query.threshold) || 20;
+        if (isNaN(threshold) || threshold < 0 || threshold > 100) {
+            return next(new AppError("Threshold must be a number between 0 and 100", 400));
+        }
+
+        const telemetryData = await Telemetry.find({ "metrics.battery": { $lt: threshold } });
+        res.status(200).json({
+            status: "SUCCESS",
+            telemetryData
+        })
+    } catch (error) {
+        next(error);
+    }
+}
+
+const offlineDevices = async (req, res, next) => {
+    try {
+        const minutes = Number(req.query.minutes) || 15;
+        if (isNaN(minutes) || minutes <= 0) {
+            return next(new AppError("Minutes must be a positive number", 400));
+        }
+
+        const thresholdTime = new Date(Date.now() - minutes * 60 * 1000);
+
+        const latestTelemetry = await Telemetry.aggregate([
+            { $sort: { timestamp: -1 } },
+            { $group: { _id: "$deviceId", lastSeen: { $first: "$timestamp" } } },
+            { $match: { lastSeen: { $lt: thresholdTime } } }
+        ]);
+
+        res.status(200).json({
+            status: "SUCCESS",
+            latestTelemetry
+        })
+    } catch (error) {
+        next(error);
+    }
+}
+module.exports = { insertTelemetry, bulkInsertTelemetry, getTelemetryByRange, getLatestTelemetry, getStats, lowBattery, offlineDevices }
