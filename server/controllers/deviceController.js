@@ -1,6 +1,16 @@
 const Device = require("../models/Device");
 const AppError = require("../utils/AppError");
 
+/*
+Device register data
+    "deviceId":"dev-104",
+    "type":"humidity",
+    "location":{
+         "lat": 45.3819,
+         "long": 66.5201
+    }
+    "status":"inactive"
+*/
 const registerDevice = async (req, res, next) => {
     try {
         const { deviceId, type, location, status } = req.body;

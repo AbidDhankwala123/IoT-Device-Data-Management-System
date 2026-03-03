@@ -2,7 +2,16 @@ const AppError = require("../utils/AppError");
 const Telemetry = require("../models/Telemetry");
 const Device = require("../models/Device");
 
-
+/*
+Telemetry insert data
+    "deviceId":"dev-104",
+    "timestamp":"2026-04-01T10:30:00Z",
+    "metrics":{
+    "temperature": 23.5,
+    "humidity": 40,
+    "battery": 15
+    }
+*/
 const insertTelemetry = async (req, res, next) => {
     try {
         const { deviceId, timestamp, metrics } = req.body;
@@ -52,6 +61,40 @@ const insertTelemetry = async (req, res, next) => {
     }
 }
 
+/*
+Bulk telemetry insert data
+{
+    "data":[
+       {
+        "deviceId":"dev-102",
+         "timestamp":"2026-03-01T10:30:00Z",
+         "metrics":{
+         "temperature": 35.0,
+         "humidity": 65,
+         "battery": 70
+         }   
+       },
+       {
+        "deviceId":"dev-104",
+         "timestamp":"2026-02-15T10:30:00Z",
+         "metrics":{
+         "temperature": 23.8,
+         "humidity": 75,
+         "battery": 87
+         }   
+       },
+       {
+        "deviceId":"dev-101",
+         "timestamp":"2026-03-15T10:30:00Z",
+         "metrics":{
+         "temperature": 38.4,
+         "humidity": 68,
+         "battery": 78
+         }   
+       }
+   ]
+}
+*/
 const bulkInsertTelemetry = async (req, res, next) => {
     try {
         const { data } = req.body;
